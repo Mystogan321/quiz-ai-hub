@@ -7,52 +7,40 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Book, User } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const { login, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Redirect if already logged in
+  if (isAuthenticated) {
+    navigate('/dashboard');
+    return null;
+  }
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     
-    // This would normally connect to your Laravel backend with Sanctum
-    // For now, we'll simulate a login with mock data
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const success = await login({ email, password });
       
-      // Mock login logic
-      if (email === "admin@example.com" && password === "password") {
-        toast({
-          title: "Login successful",
-          description: "Welcome back, Admin!",
-        });
-        navigate("/admin/dashboard");
-      } else if (email === "user@example.com" && password === "password") {
+      if (success) {
         toast({
           title: "Login successful",
           description: "Welcome back!",
         });
-        navigate("/dashboard");
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Login failed",
-          description: "Please check your credentials and try again.",
-        });
       }
     } catch (error) {
+      console.error('Login error:', error);
       toast({
         variant: "destructive",
         title: "Login failed",
-        description: "An error occurred. Please try again.",
+        description: "Please check your credentials and try again.",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -150,11 +138,7 @@ const Index = () => {
             </div>
 
             <div className="text-xs text-white/60">
-              Use these demo credentials:
-              <br />
-              Admin: admin@example.com / password
-              <br />
-              Learner: user@example.com / password
+              Please contact your administrator if you need access to the system.
             </div>
           </div>
         </div>

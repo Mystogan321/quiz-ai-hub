@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import Navbar from "@/components/Navbar";
 import CourseCard from "@/components/CourseCard";
 import { Button } from "@/components/ui/button";
@@ -7,75 +8,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Award, Clock, Search, Trophy } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Course, User } from "@/types";
-
-// Mock data
-const mockUser: User = {
-  id: "1",
-  name: "John Doe",
-  email: "user@example.com",
-  role: "learner",
-};
-
-const mockCourses: Course[] = [
-  {
-    id: "1",
-    title: "Introduction to Project Management",
-    description: "Learn the fundamentals of project management methodologies and practices.",
-    modules: [
-      {
-        id: "1-1",
-        title: "Project Management Basics",
-        description: "Core concepts and terminology",
-        content: [
-          {
-            id: "1-1-1",
-            title: "What is Project Management?",
-            type: "text",
-            content: "<p>Project management is the application of processes, methods, skills, knowledge and experience to achieve specific project objectives according to the project acceptance criteria within agreed parameters.</p>",
-            completed: true,
-          },
-        ],
-        assessments: [],
-      },
-    ],
-    progress: 15,
-  },
-  {
-    id: "2",
-    title: "Business Communication Skills",
-    description: "Enhance your professional communication in meetings, emails, and presentations.",
-    modules: [
-      {
-        id: "2-1",
-        title: "Effective Emails",
-        description: "Writing professional emails",
-        content: [],
-        assessments: [],
-      },
-    ],
-    progress: 0,
-  },
-  {
-    id: "3",
-    title: "Data Analysis with Excel",
-    description: "Master data analysis techniques using Microsoft Excel for business insights.",
-    modules: [
-      {
-        id: "3-1",
-        title: "Excel Basics",
-        description: "Introduction to Excel functions",
-        content: [],
-        assessments: [],
-      },
-    ],
-    progress: 65,
-  },
-];
+import { useAuth } from "@/contexts/AuthContext";
+import { getCourses } from "@/services/courseService";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Dashboard = () => {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
-  const [courses, setCourses] = useState(mockCourses);
+  
+  const { data: courses = [], isLoading, error } = useQuery({
+    queryKey: ['courses'],
+    queryFn: getCourses
+  });
 
   // Filter courses based on search query
   const filteredCourses = courses.filter((course) =>
@@ -95,14 +39,14 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar user={mockUser} />
+      <Navbar />
       
       <main className="container py-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
             <p className="text-muted-foreground">
-              Welcome back, {mockUser.name}. Continue your learning journey.
+              Welcome back, {user?.name}. Continue your learning journey.
             </p>
           </div>
           <div className="relative w-full md:w-auto">
@@ -126,11 +70,17 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-between">
-                <div className="text-2xl font-bold">{overallProgress}%</div>
-                <Trophy className="h-4 w-4 text-lms-blue" />
-              </div>
-              <Progress className="h-2 mt-2" value={overallProgress} />
+              {isLoading ? (
+                <Skeleton className="h-10 w-full" />
+              ) : (
+                <>
+                  <div className="flex items-center justify-between">
+                    <div className="text-2xl font-bold">{overallProgress}%</div>
+                    <Trophy className="h-4 w-4 text-lms-blue" />
+                  </div>
+                  <Progress className="h-2 mt-2" value={overallProgress} />
+                </>
+              )}
             </CardContent>
           </Card>
           
@@ -141,10 +91,14 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-between">
-                <div className="text-2xl font-bold">{inProgressCourses.length}</div>
-                <Clock className="h-4 w-4 text-yellow-500" />
-              </div>
+              {isLoading ? (
+                <Skeleton className="h-10 w-full" />
+              ) : (
+                <div className="flex items-center justify-between">
+                  <div className="text-2xl font-bold">{inProgressCourses.length}</div>
+                  <Clock className="h-4 w-4 text-yellow-500" />
+                </div>
+              )}
             </CardContent>
           </Card>
           
@@ -155,16 +109,55 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-between">
-                <div className="text-2xl font-bold">0</div>
-                <Award className="h-4 w-4 text-green-500" />
-              </div>
+              {isLoading ? (
+                <Skeleton className="h-10 w-full" />
+              ) : (
+                <div className="flex items-center justify-between">
+                  <div className="text-2xl font-bold">
+                    {courses.filter(c => c.progress === 100).length}
+                  </div>
+                  <Award className="h-4 w-4 text-green-500" />
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
 
+        {/* Loading State */}
+        {isLoading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+            {[...Array(3)].map((_, i) => (
+              <Card key={i} className="overflow-hidden">
+                <div className="aspect-video">
+                  <Skeleton className="h-full w-full" />
+                </div>
+                <CardHeader className="p-4 pb-0">
+                  <Skeleton className="h-6 w-3/4 mb-2" />
+                  <Skeleton className="h-4 w-full" />
+                </CardHeader>
+                <CardContent className="p-4">
+                  <Skeleton className="h-4 w-full mb-2" />
+                  <Skeleton className="h-8 w-full" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-10">
+              <p className="text-red-500">Failed to load courses. Please try again later.</p>
+              <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>
+                Retry
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Continue Learning */}
-        {inProgressCourses.length > 0 && (
+        {!isLoading && inProgressCourses.length > 0 && (
           <div className="mb-8">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Continue Learning</h2>
@@ -181,28 +174,30 @@ const Dashboard = () => {
         )}
 
         {/* All Courses */}
-        <div>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">All Courses</h2>
-          </div>
-          
-          {filteredCourses.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredCourses.map((course) => (
-                <CourseCard key={course.id} course={course} />
-              ))}
+        {!isLoading && (
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">All Courses</h2>
             </div>
-          ) : (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-10">
-                <p className="text-muted-foreground">No courses found matching your search.</p>
-                <Button variant="outline" className="mt-4" onClick={() => setSearchQuery("")}>
-                  Clear search
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+            
+            {filteredCourses.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredCourses.map((course) => (
+                  <CourseCard key={course.id} course={course} />
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-10">
+                  <p className="text-muted-foreground">No courses found matching your search.</p>
+                  <Button variant="outline" className="mt-4" onClick={() => setSearchQuery("")}>
+                    Clear search
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
       </main>
     </div>
   );

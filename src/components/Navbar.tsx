@@ -1,6 +1,5 @@
 
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,18 +10,24 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Book, Layers, LayoutDashboard, LogOut, Settings, User } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
-interface NavbarProps {
-  user?: {
-    name: string;
-    role: string;
-    avatar?: string;
+const Navbar = () => {
+  const { user, isAuthenticated, isAdmin, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
   };
-}
 
-const Navbar = ({ user }: NavbarProps) => {
-  const [isLoggedIn, setIsLoggedIn] = useState(!!user);
-  const isAdmin = user?.role === "admin";
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(part => part.charAt(0))
+      .join('')
+      .toUpperCase();
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -33,7 +38,7 @@ const Navbar = ({ user }: NavbarProps) => {
         </Link>
 
         <nav className="hidden md:flex items-center gap-6 text-sm">
-          {isLoggedIn && (
+          {isAuthenticated && (
             <>
               <Link
                 to="/dashboard"
@@ -66,7 +71,7 @@ const Navbar = ({ user }: NavbarProps) => {
         </nav>
 
         <div className="flex items-center gap-2">
-          {isLoggedIn ? (
+          {isAuthenticated ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
@@ -76,7 +81,7 @@ const Navbar = ({ user }: NavbarProps) => {
                       alt={user?.name || "User avatar"}
                     />
                     <AvatarFallback>
-                      {user?.name?.charAt(0) || "U"}
+                      {user?.name ? getInitials(user.name) : "U"}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
@@ -110,7 +115,7 @@ const Navbar = ({ user }: NavbarProps) => {
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setIsLoggedIn(false)} className="flex items-center">
+                <DropdownMenuItem onClick={handleLogout} className="flex items-center">
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log out</span>
                 </DropdownMenuItem>
@@ -119,7 +124,7 @@ const Navbar = ({ user }: NavbarProps) => {
           ) : (
             <div className="flex gap-2">
               <Button variant="outline" asChild>
-                <Link to="/login">Log in</Link>
+                <Link to="/">Log in</Link>
               </Button>
             </div>
           )}

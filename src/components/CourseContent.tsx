@@ -1,11 +1,15 @@
 
 import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { ContentItem } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CheckCircle, ExternalLink, FileText, Play, Link as LinkIcon } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { markContentCompleted } from "@/services/courseService";
+import { useToast } from "@/components/ui/use-toast";
+import { useParams } from "react-router-dom";
 
 interface CourseContentProps {
   contentItem: ContentItem;
@@ -14,9 +18,35 @@ interface CourseContentProps {
 
 const CourseContent = ({ contentItem, onComplete }: CourseContentProps) => {
   const [isReading, setIsReading] = useState(false);
+  const { courseId, moduleId } = useParams();
+  const { toast } = useToast();
   
+  // API Integration for marking content complete
+  const markCompleteMutation = useMutation({
+    mutationFn: () => {
+      if (!courseId || !moduleId) {
+        throw new Error("Missing courseId or moduleId");
+      }
+      return markContentCompleted(courseId, moduleId, contentItem.id);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Progress saved",
+        description: "Your progress has been updated.",
+      });
+      onComplete(contentItem.id);
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update progress. Please try again.",
+      });
+    }
+  });
+
   const handleMarkComplete = () => {
-    onComplete(contentItem.id);
+    markCompleteMutation.mutate();
   };
 
   const renderContentByType = () => {
@@ -154,11 +184,22 @@ const CourseContent = ({ contentItem, onComplete }: CourseContentProps) => {
         </p>
         <Button
           onClick={handleMarkComplete}
-          disabled={contentItem.completed}
+          disabled={contentItem.completed || markCompleteMutation.isPending}
           variant={contentItem.completed ? "outline" : "default"}
         >
-          <CheckCircle className="mr-2 h-4 w-4" />
-          {contentItem.completed ? "Completed" : "Mark as Complete"}
+          {markCompleteMutation.isPending ? (
+            "Saving..."
+          ) : contentItem.completed ? (
+            <>
+              <CheckCircle className="mr-2 h-4 w-4" />
+              Completed
+            </>
+          ) : (
+            <>
+              <CheckCircle className="mr-2 h-4 w-4" />
+              Mark as Complete
+            </>
+          )}
         </Button>
       </div>
     </div>
